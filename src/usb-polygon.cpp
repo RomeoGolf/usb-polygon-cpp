@@ -3,7 +3,7 @@
 #include <Setupapi.h>
 #include <tchar.h>
 #include <iostream>
-
+#include <stdio.h>		// для _tprintf
 
 
 void OutFormatMsg(const TCHAR *Msg){
