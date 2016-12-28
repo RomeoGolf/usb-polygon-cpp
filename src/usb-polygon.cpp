@@ -34,7 +34,6 @@ int main()
     SP_DEVICE_INTERFACE_DATA DeviceInterfaceData;
     SP_DEVINFO_DATA DeviceInfoData;
     HDEVINFO hDevInfo;
-    TCHAR *lpBuffer = NULL;
 
     // \\?\usbstor#disk&ven_<name>&rev_0001#7&4e...
     // GUID_DEVINTERFACE_DISK
@@ -74,48 +73,26 @@ int main()
             }
         }
 
-        RequiredLength = 0;
+        _tprintf(_T("pDeviceInterfaceDetailData->DevicePath: %s\n"), pDeviceInterfaceDetailData->DevicePath);
 
-        while ( !SetupDiGetDeviceRegistryProperty(hDevInfo,
-            &DeviceInfoData, SPDRP_ENUMERATOR_NAME, NULL,
-            (PBYTE)lpBuffer, RequiredLength, &RequiredLength) )
-        {
-            if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
-            {
-                LocalFreeIf(lpBuffer);
-                lpBuffer = (TCHAR*)LocalAlloc(LPTR, (RequiredLength + 1) * sizeof(TCHAR));
-            } else {
-                OutFormatMsg(_T("SetupDiGetDeviceRegistryProperty"));
-                break;
-            }
+        HANDLE hDevice=CreateFile(
+			pDeviceInterfaceDetailData->DevicePath,
+                GENERIC_READ | GENERIC_WRITE,
+				FILE_SHARE_READ or FILE_SHARE_WRITE, //0,
+                NULL,
+                OPEN_EXISTING,
+				0, //FILE_FLAG_WRITE_THROUGH | FILE_FLAG_NO_BUFFERING, //FILE_ATTRIBUTE_NORMAL,
+                NULL
+                );
+
+        if(hDevice == INVALID_HANDLE_VALUE) {
+			_tprintf(_T("CreateFile failed! \n"));
+        } else {
+			_tprintf(_T("CreateFile done! \n"));
+
+			CloseHandle(hDevice);
         }
 
-        //if( !_tcscmp(lpBuffer, _T("USBSTOR")) )    // Точно USB накопитель...
-        {
-            _tprintf(_T("%s\n"), pDeviceInterfaceDetailData->DevicePath);
-            /* \\?\usbstor#disk&ven_generic&prod_usb_flash_disk&rev_0.00#000000000000ec&0#{53f56307-b6bf-11d0-94f2-00a0c91efb8b} */
-
-            RequiredLength = 0;
-
-            while ( !SetupDiGetDeviceRegistryProperty(hDevInfo,
-                &DeviceInfoData, SPDRP_FRIENDLYNAME, NULL,
-                (PBYTE)lpBuffer, RequiredLength, &RequiredLength) )
-            {
-                if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
-                {
-                    LocalFreeIf(lpBuffer);
-                    lpBuffer = (TCHAR*)LocalAlloc(LPTR, (RequiredLength + 1) * sizeof(TCHAR));
-                } else {
-                    OutFormatMsg(_T("SetupDiGetDeviceRegistryProperty2"));
-                    break;
-                }
-            }
-
-            _tprintf(_T("%s\n"),lpBuffer);
-
-        }
-
-        LocalFreeIf(lpBuffer);
         LocalFreeIf(pDeviceInterfaceDetailData);
     }
     SetupDiDestroyDeviceInfoList(hDevInfo);
