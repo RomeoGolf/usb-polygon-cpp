@@ -73,8 +73,6 @@ int main()
             }
         }
 
-        _tprintf(_T("pDeviceInterfaceDetailData->DevicePath: %s\n"), pDeviceInterfaceDetailData->DevicePath);
-
         HANDLE hDevice=CreateFile(
 			pDeviceInterfaceDetailData->DevicePath,
                 GENERIC_READ | GENERIC_WRITE,
@@ -86,8 +84,9 @@ int main()
                 );
 
         if(hDevice == INVALID_HANDLE_VALUE) {
-			_tprintf(_T("CreateFile failed! \n"));
+        	//	_tprintf(_T("CreateFile failed! \n"));
         } else {
+        	_tprintf(_T("pDeviceInterfaceDetailData->DevicePath: %s\n"), pDeviceInterfaceDetailData->DevicePath);
 			_tprintf(_T("CreateFile done! \n"));
 
 			CloseHandle(hDevice);
