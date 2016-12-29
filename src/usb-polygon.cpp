@@ -5,6 +5,17 @@
 #include <iostream>
 #include <stdio.h>		// для _tprintf
 
+#include <ntddscsi.h>
+
+// Это структура _SCSI_PASS_THROUGH_DIRECT_WITH_BUFFER,
+// которая eсть в spti.h из состава Windows DDK
+// и нет в MinGW
+struct scsi_st
+{
+	SCSI_PASS_THROUGH_DIRECT t_spti;
+	DWORD tmp;				// realign buffer to double word boundary
+	byte sensebuf[32];
+} myspti;
 
 void OutFormatMsg(const TCHAR *Msg){
     LPVOID lpMsgBuf;
@@ -88,6 +99,49 @@ int main()
         } else {
         	_tprintf(_T("pDeviceInterfaceDetailData->DevicePath: %s\n"), pDeviceInterfaceDetailData->DevicePath);
 			_tprintf(_T("CreateFile done! \n"));
+
+        	char vbuf[512];				// буфер для принятого пакета
+        	unsigned long returned;		// место под количество прочитанных байт
+
+            memset(&myspti, 0, sizeof(scsi_st));	// инициализация структуры
+            myspti.t_spti.Length = sizeof(SCSI_PASS_THROUGH_DIRECT); // длина
+            myspti.t_spti.Lun = 0;			// логический номер устройства (в одном устройстве может быть несколько логических)
+            myspti.t_spti.TargetId = 0;		// целевой контроллер или устройство на шине
+            myspti.t_spti.PathId = 0;		// SCSII-порт или шина для запроса.
+            myspti.t_spti.CdbLength = 6;	// длина command descriptor block (CDB, для кодов команд до 0x1F длина 6)
+            myspti.t_spti.DataIn = SCSI_IOCTL_DATA_IN;	// на прием
+            myspti.t_spti.SenseInfoLength = 32;		// длина блока sensebuf и его смещение
+            myspti.t_spti.SenseInfoOffset = sizeof(SCSI_PASS_THROUGH_DIRECT) + sizeof(DWORD);
+            myspti.t_spti.TimeOutValue = 10;		// таймаут ожидания окончания операции
+            myspti.t_spti.DataTransferLength = 36;	// длина данных для обмена
+            myspti.t_spti.DataBuffer = vbuf;		// указатель на буфер данных
+            // собственно CDB (блок описания команды):
+            myspti.t_spti.Cdb[0] = 0x12;	// код команды INQUIRY
+            myspti.t_spti.Cdb[4] = 0x24;	// 36 - размер данных
+
+            if (DeviceIoControl(
+                        hDevice,						// дескриптор устройства
+                        IOCTL_SCSI_PASS_THROUGH_DIRECT,	// dwIoControlCode управляющий код операции - интерфейс для отправки CDB
+                        &myspti,						// входной буфер
+                        sizeof(scsi_st),				// его размер
+                        &myspti,						// выходной буфер
+                        sizeof(scsi_st),				// его размер
+                        &returned,						// сколько данных передано (надо бы сверить)
+                        NULL)) {						// указатель на OVERLAPPED, не нужно.
+
+            	vbuf[36] = 0;								// для удобства вывода в консоль
+                _tprintf(_T("PDT = %x\n"), vbuf[0]);		// тип устройства SCSII
+                _tprintf(_T("RMB = %x\n"), (vbuf[1] & 0x080) >> 7);	// съемный/нет
+                _tprintf(_T("ver. SPC = %x\n"), vbuf[2]);	// версия SPC
+                _tprintf(_T("vendor = %s\n"), &vbuf[8]);	// строковое обозначение производителя
+                _tprintf(_T("product = %s\n"), &vbuf[16]);	// строковое обозначение продукта
+                _tprintf(_T("ver = %s\n"), &vbuf[32]);		// строковое обозначение версии
+
+                if (!_tcscmp(&vbuf[8], _T("LUFA")) ){		// поиск своего устройства
+                	_tprintf(_T("--- This is my device! ---\n"));
+                }
+                _tprintf(_T("\n"));							// для удобочитаемости пустая строка
+            }
 
 			CloseHandle(hDevice);
         }
