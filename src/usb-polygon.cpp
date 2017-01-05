@@ -150,6 +150,27 @@ int main()
 
                 	ZeroMemory(&myspti, sizeof(scsi_st));
 
+                	SetFilePointer(hDevice, 5, NULL, FILE_BEGIN);
+
+                	result = WriteFile(hDevice, q, q1, &q2, NULL);
+                	if (result==0) {
+                		OutFormatMsg("ReadFile Error");
+                	} else {
+                		_tprintf("WriteFile done\n");
+                		_tprintf("len = %lu\n", q2);
+                	}
+
+
+                	result = ReadFile(hDevice, q, q1, &q2, NULL);
+                	if (result==0) {
+                		OutFormatMsg("ReadFile Error");
+                	} else {
+                		_tprintf("ReadFile done\n");
+                		_tprintf("data_2 = %x\n", q[0]);
+                		_tprintf("len = %lu\n", q2);
+                	}
+
+                	/*
                 	myspti.t_spti.Length = sizeof(SCSI_PASS_THROUGH_DIRECT);
                 	myspti.t_spti.PathId = 0;
                 	myspti.t_spti.TargetId = 0;
@@ -224,6 +245,7 @@ int main()
                 		_tprintf("data_2 = %x\n", q[0]);
                 		_tprintf("len = %lu\n", q2);
                 	}
+                	*/
                 	// --------------------------------
                 }
                 _tprintf(_T("\n"));							// для удобочитаемости пустая строка
