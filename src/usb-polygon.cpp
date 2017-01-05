@@ -139,6 +139,92 @@ int main()
 
                 if (!_tcscmp(&vbuf[8], _T("LUFA")) ){		// поиск своего устройства
                 	_tprintf(_T("--- This is my device! ---\n"));
+
+                	// ----- работа с устройством -----
+                	BOOL result;
+                	UCHAR q[512 * 4 * 2];
+                	DWORD q1, q2 = 0;
+                	q1 = 512 * 2 * 1;
+                	//q1 = 512;
+                	q[0] = 0x07;
+
+                	ZeroMemory(&myspti, sizeof(scsi_st));
+
+                	myspti.t_spti.Length = sizeof(SCSI_PASS_THROUGH_DIRECT);
+                	myspti.t_spti.PathId = 0;
+                	myspti.t_spti.TargetId = 0;
+                	myspti.t_spti.Lun = 0;
+                	myspti.t_spti.CdbLength = 10;
+                	myspti.t_spti.DataIn = SCSI_IOCTL_DATA_OUT;
+                	myspti.t_spti.SenseInfoLength = 32;
+                	myspti.t_spti.DataTransferLength = q1;
+                	myspti.t_spti.TimeOutValue = 10;
+                	myspti.t_spti.DataBuffer = &q;
+                	myspti.t_spti.SenseInfoOffset = sizeof(SCSI_PASS_THROUGH_DIRECT) + sizeof(DWORD);
+                	myspti.t_spti.Cdb[0] = 0x2a; //SCSIOP_WRITE;
+
+                	myspti.t_spti.Cdb[2] = 0x00;
+                	myspti.t_spti.Cdb[3] = 0x00;
+                	myspti.t_spti.Cdb[4] = 0x00;
+                	myspti.t_spti.Cdb[5] = 0x00;
+
+                	myspti.t_spti.Cdb[7] = 0x00;
+                	myspti.t_spti.Cdb[8] = 0x02;
+
+                	ULONG length = sizeof(scsi_st);
+                	result = DeviceIoControl(hDevice,
+                			IOCTL_SCSI_PASS_THROUGH_DIRECT,
+                	    	&myspti,
+                			length,
+                	    	&myspti,
+                			length,
+                	    	&q2,
+                	    	FALSE);
+                	if (result==0) {
+                		OutFormatMsg("Write Error DevIoCtl");
+                	} else {
+                		_tprintf("Write done\n");
+                		_tprintf("len = %lu\n", q2);
+                	}
+
+                	q2=0;
+                	myspti.t_spti.Length = sizeof(SCSI_PASS_THROUGH_DIRECT);
+                	myspti.t_spti.PathId = 0;
+                	myspti.t_spti.TargetId = 0;
+                	myspti.t_spti.Lun = 0;
+                	myspti.t_spti.CdbLength = 10;
+                	myspti.t_spti.DataIn = SCSI_IOCTL_DATA_IN;
+                	myspti.t_spti.SenseInfoLength = 32;
+                	myspti.t_spti.DataTransferLength = q1;
+                	myspti.t_spti.TimeOutValue = 10;
+                	myspti.t_spti.DataBuffer = &q;
+                	myspti.t_spti.SenseInfoOffset = sizeof(SCSI_PASS_THROUGH_DIRECT) + sizeof(DWORD);
+
+                	myspti.t_spti.Cdb[0] = 0x28; //SCSIOP_READ;
+
+                	myspti.t_spti.Cdb[2] = 0x00;
+                	myspti.t_spti.Cdb[3] = 0x00;
+                	myspti.t_spti.Cdb[4] = 0x00;
+                	myspti.t_spti.Cdb[5] = 0x00;
+
+                	myspti.t_spti.Cdb[7] = 0x00;
+                	myspti.t_spti.Cdb[8] = 0x02;
+
+                	result = DeviceIoControl(hDevice,
+                			IOCTL_SCSI_PASS_THROUGH_DIRECT,
+							&myspti,
+							q1,
+							&myspti,
+							q1,
+							&q2,
+							FALSE);
+                	if (result == 0) {
+                		OutFormatMsg("Read Error DevIoCtl");
+                	} else {
+                		_tprintf("data_2 = %x\n", q[0]);
+                		_tprintf("len = %lu\n", q2);
+                	}
+                	// --------------------------------
                 }
                 _tprintf(_T("\n"));							// для удобочитаемости пустая строка
             }
