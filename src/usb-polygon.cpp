@@ -30,14 +30,13 @@ typedef struct _VOLUME_DISK_EXTENTS {
 	DISK_EXTENT Extents[ANYSIZE_ARRAY];
 } VOLUME_DISK_EXTENTS;
 
-void OutFormatMsg(const TCHAR *Msg) {
+void OutFormatMsg(const TCHAR *Msg)
+{
 	LPVOID lpMsgBuf;
 
-	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-	FORMAT_MESSAGE_FROM_SYSTEM |
-	FORMAT_MESSAGE_IGNORE_INSERTS,
-	NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(TCHAR*) &lpMsgBuf, 0,
+	FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
+            | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, GetLastError(),
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (TCHAR*) &lpMsgBuf, 0,
 			NULL);
 
 	_tprintf(_T("%s: %s\n"), Msg, (TCHAR*) lpMsgBuf);
@@ -46,7 +45,8 @@ void OutFormatMsg(const TCHAR *Msg) {
 
 #define LocalFreeIf(Pointer) if(Pointer) { LocalFree(Pointer); Pointer = NULL; }
 
-int main() {
+int main()
+{
 	setlocale(0, "");
 
 	PSP_DEVICE_INTERFACE_DETAIL_DATA pDeviceInterfaceDetailData = NULL;
@@ -56,13 +56,14 @@ int main() {
 
 	// \\?\usbstor#disk&ven_<name>&rev_0001#7&4e...
 	// GUID_DEVINTERFACE_DISK
-	//const GUID InterfaceGuid = { 0x53F56307,0xB6BF,0x11D0,{0x94,0xF2,0x00,0xA0,0xC9,0x1E,0xFB,0x8B} };
+	//const GUID InterfaceGuid = {0x53F56307, 0xB6BF, 0x11D0,
+    //  {0x94,0xF2,0x00,0xA0,0xC9,0x1E,0xFB,0x8B}};
 
 	// \\?\storage#removablemedia#8...
 	// GUID_DEVINTERFACE_VOLUME
 	// нельзя FriendlyName
-	const GUID InterfaceGuid = { 0x53f5630dL, 0xb6bf, 0x11d0, { 0x94, 0xf2,
-			0x00, 0xa0, 0xc9, 0x1e, 0xfb, 0x8b } };
+	const GUID InterfaceGuid = {0x53f5630dL, 0xb6bf, 0x11d0, {0x94, 0xf2,
+			0x00, 0xa0, 0xc9, 0x1e, 0xfb, 0x8b}};
 
 	hDevInfo = SetupDiGetClassDevs(&InterfaceGuid, 0, 0,
 			DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
@@ -100,11 +101,10 @@ int main() {
 		GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ or FILE_SHARE_WRITE, //0,
 				NULL,
-				OPEN_EXISTING, 0, //FILE_FLAG_WRITE_THROUGH | FILE_FLAG_NO_BUFFERING, //FILE_ATTRIBUTE_NORMAL,
+				OPEN_EXISTING, 0,
 				NULL);
 
 		if (hDevice == INVALID_HANDLE_VALUE) {
-			//	_tprintf(_T("CreateFile failed! \n"));
 		} else {
 			_tprintf(_T("pDeviceInterfaceDetailData->DevicePath: %s\n"),
 					pDeviceInterfaceDetailData->DevicePath);
@@ -115,15 +115,21 @@ int main() {
 
 			memset(&myspti, 0, sizeof(scsi_st));	// инициализация структуры
 			myspti.t_spti.Length = sizeof(SCSI_PASS_THROUGH_DIRECT); // длина
-			myspti.t_spti.Lun = 0;// логический номер устройства (в одном устройстве может быть несколько логических)
-			myspti.t_spti.TargetId = 0;	// целевой контроллер или устройство на шине
+            // логический номер устройства (в одном устройстве может быть несколько логических)
+			myspti.t_spti.Lun = 0;
+           	// целевой контроллер или устройство на шине
+			myspti.t_spti.TargetId = 0;
 			myspti.t_spti.PathId = 0;		// SCSII-порт или шина для запроса.
-			myspti.t_spti.CdbLength = 6;// длина command descriptor block (CDB, для кодов команд до 0x1F длина 6)
+            // длина command descriptor block (CDB, для кодов команд
+            // до 0x1F длина 6)
+			myspti.t_spti.CdbLength = 6;
 			myspti.t_spti.DataIn = SCSI_IOCTL_DATA_IN;	// на прием
-			myspti.t_spti.SenseInfoLength = 32;	// длина блока sensebuf и его смещение
+            // длина блока sensebuf и его смещение
+			myspti.t_spti.SenseInfoLength = 32;
 			myspti.t_spti.SenseInfoOffset = sizeof(SCSI_PASS_THROUGH_DIRECT)
 					+ sizeof(DWORD);
-			myspti.t_spti.TimeOutValue = 10;// таймаут ожидания окончания операции
+            // таймаут ожидания окончания операции
+			myspti.t_spti.TimeOutValue = 10;
 			myspti.t_spti.DataTransferLength = 36;	// длина данных для обмена
 			myspti.t_spti.DataBuffer = vbuf;		// указатель на буфер данных
 			// собственно CDB (блок описания команды):
@@ -131,7 +137,9 @@ int main() {
 			myspti.t_spti.Cdb[4] = 0x24;	// 36 - размер данных
 
 			if (DeviceIoControl(hDevice,				// дескриптор устройства
-					IOCTL_SCSI_PASS_THROUGH_DIRECT,	// dwIoControlCode управляющий код операции - интерфейс для отправки CDB
+                    // dwIoControlCode управляющий код операции -
+                    //   интерфейс для отправки CDB
+					IOCTL_SCSI_PASS_THROUGH_DIRECT,
 					&myspti,						// входной буфер
 					sizeof(scsi_st),				// его размер
 					&myspti,						// выходной буфер
@@ -141,20 +149,26 @@ int main() {
 
 				vbuf[36] = 0;					// для удобства вывода в консоль
 				_tprintf(_T("PDT = %x\n"), vbuf[0]);	// тип устройства SCSII
-				_tprintf(_T("RMB = %x\n"), (vbuf[1] & 0x080) >> 7);	// съемный/нет
+                // съемный/нет
+				_tprintf(_T("RMB = %x\n"), (vbuf[1] & 0x080) >> 7);
 				_tprintf(_T("ver. SPC = %x\n"), vbuf[2]);	// версия SPC
-				_tprintf(_T("vendor = %s\n"), &vbuf[8]);// строковое обозначение производителя
-				_tprintf(_T("product = %s\n"), &vbuf[16]);// строковое обозначение продукта
-				_tprintf(_T("ver = %s\n"), &vbuf[32]);// строковое обозначение версии
+                // строковое обозначение производителя
+				_tprintf(_T("vendor = %s\n"), &vbuf[8]);
+                // строковое обозначение продукта
+				_tprintf(_T("product = %s\n"), &vbuf[16]);
+                // строковое обозначение версии
+				_tprintf(_T("ver = %s\n"), &vbuf[32]);
 
 				if (!_tcscmp(&vbuf[8], _T("LUFA"))) {// поиск своего устройства
 					_tprintf(_T("--- This is my device! ---\n"));
 
 					// ----- работа с устройством -----
 					int diskNum = 0;				// количество дисков
-					char physicalDrive[50] = { 0 };	// строка под "\\\\.\\PhysicalDrive%d"
+                    // строка под "\\\\.\\PhysicalDrive%d"
+					char physicalDrive[50] = { 0 };	
 					DWORD bufsize, bufsizeret;		// размеры буфера
-					VOLUME_DISK_EXTENTS buf_ioctl;// буфер для GET_VOLUME_DISK_EXTENTS
+                    // буфер для GET_VOLUME_DISK_EXTENTS
+					VOLUME_DISK_EXTENTS buf_ioctl;
 					bufsize = sizeof(VOLUME_DISK_EXTENTS);
 
 					BOOL result;
@@ -165,9 +179,9 @@ int main() {
 					q[0] = 0x17;
 
 					result = DeviceIoControl(hDevice,
-					IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
-					NULL, 0, &buf_ioctl, bufsize, &bufsizeret,
-					NULL);
+                            IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS,
+                            NULL, 0, &buf_ioctl, bufsize, &bufsizeret,
+                            NULL);
 					if (result == 0) {
 						OutFormatMsg("PhysicDiscErr");
 					} else {
@@ -183,39 +197,18 @@ int main() {
 					}
 
 					HANDLE hDevice2 = CreateFile(physicalDrive,
-					GENERIC_READ | GENERIC_WRITE,
-					//0,
-					//FILE_SHARE_READ or FILE_SHARE_WRITE,
-							0,
-							NULL,
-							OPEN_EXISTING,
-							FILE_FLAG_WRITE_THROUGH | FILE_FLAG_NO_BUFFERING,
-							NULL);
+                                GENERIC_READ | GENERIC_WRITE,
+                                0,
+                                NULL,
+                                OPEN_EXISTING,
+                                FILE_FLAG_WRITE_THROUGH | FILE_FLAG_NO_BUFFERING,
+                                NULL);
 					if (hDevice2 == INVALID_HANDLE_VALUE) {
 						OutFormatMsg("CreateFile 2 Error");
 					} else {
 						_tprintf(_T("CreateFile 2 done! \n"));
 
 						SetFilePointer(hDevice2, 5, NULL, FILE_BEGIN);
-
-						/*
-						 result = WriteFile(hDevice2, q, q1, &q2, NULL);
-						 if (result == 0) {
-						 OutFormatMsg("ReadFile Error");
-						 } else {
-						 _tprintf("WriteFile done\n");
-						 _tprintf("len = %lu\n", q2);
-						 }
-
-						 result = ReadFile(hDevice2, q, q1, &q2, NULL);
-						 if (result == 0) {
-						 OutFormatMsg("ReadFile Error");
-						 } else {
-						 _tprintf("ReadFile done\n");
-						 _tprintf("data_2 = %x\n", q[0]);
-						 _tprintf("len = %lu\n", q2);
-						 }
-						 */
 
 						ZeroMemory(&myspti, sizeof(scsi_st));
 
@@ -297,13 +290,10 @@ int main() {
 				}
 				_tprintf(_T("\n"));			// для удобочитаемости пустая строка
 			}
-
 			CloseHandle(hDevice);
 		}
-
 		LocalFreeIf(pDeviceInterfaceDetailData);
 	}
 	SetupDiDestroyDeviceInfoList(hDevInfo);
-
 	return 0;
 }
