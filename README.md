@@ -53,4 +53,3 @@ git clone https://github.com/RomeoGolf/usb-polygon-cpp.git
 
 This project is licensed under the MIT License - see the [License.txt](License.txt) file for details
 
-
